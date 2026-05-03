@@ -336,3 +336,12 @@ skill 应该教模型：
 Skill 文案已改为泛用例子，不再使用私人对话中的句子。操作要求明确为：模型只输出一条带 `<bubble:delay>` marker 的普通最终回复，不调用 `message(send)` 多次，也不直接调用 Telegram API；OpenClaw core 负责把 marker 转成 block replies。
 
 同时新增 `extensions/human-bubble-replies/`，作为插件形式携带该 skill。插件本身不劫持发送链路，只通过 `openclaw.plugin.json` 的 `skills` 字段发布 skill；实际解析和发送仍由 core block-reply 代码完成。
+
+## 2026-05-03 live 测试修复记录
+
+真实 Telegram DM 测试暴露了两条模拟测试没覆盖到的链路问题：
+
+1. marker 已经被 parser 清理，但两条短 bubble payload 进入 block reply coalescer 后被合并成一条消息，中间变成空行。修复：带 `bubbleDelayMs` 的 payload 绕过 coalescer，先 flush 现有 buffer，再作为独立 payload 串行发送。
+2. 极短 final 回复可能没有进入 block streaming parser，而是直接走 followup final delivery / `routeReply`。Telegram 渲染会吃掉 `<` `>`，用户看到 `bubble:700`。修复：在 followup final delivery 层也调用 human bubble parser，把 final payload 展开成多条 payload，并按 `bubbleDelayMs` 串行 `routeReply`。
+
+真实环境补丁验证成功：`好，再试这次<bubble:700>...` 被 Telegram 收到为两条独立消息。OpenClaw feature branch 已同步修复并补测试，提交 `b846e1c05d fix: split human bubbles in final followup delivery`。
