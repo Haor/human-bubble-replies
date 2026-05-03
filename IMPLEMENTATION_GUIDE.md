@@ -58,6 +58,8 @@ Delay rules:
 - clamp to a safe range, e.g. `50..2500ms`;
 - first bubble has delay `0`.
 
+The delay value is chosen by the model based on word count, emotion, and context (see the bundled SKILL.md for the full rule set). The core only parses, clamps, and honors it — it does not guess or override the delay.
+
 Avoid `<|bubble:800|>` because OpenClaw-style model special token sanitizers often strip `<|...|>`.
 
 ## 5. Parser design
@@ -77,7 +79,7 @@ Only split when the scope and content are safe:
 - channel is Telegram;
 - chat type is direct/private;
 - text is short, roughly <= 500 chars;
-- split result has 2 or 3 non-empty bubbles;
+- split result has 2 to 5 non-empty bubbles;
 - no fenced code blocks;
 - no `MEDIA:` directives;
 - no reply tags such as `[[reply_to_current]]`;
@@ -220,6 +222,9 @@ cp skill/SKILL.md ~/.openclaw/workspace/skills/human-bubble-replies/SKILL.md
 The skill is not a delivery implementation. It only teaches model behavior. The runtime must still implement parser, fan-out, delay, and dedupe support.
 
 ## 13. Tests to write
+
+- valid 4-bubble and 5-bubble split;
+- beyond 5 bubbles: cap by dropping excess or fall back to one marker-stripped message;
 
 At minimum, write tests for these behaviors.
 
