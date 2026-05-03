@@ -1,26 +1,100 @@
-# Human Bubble Replies / OpenClaw 真人多气泡回复方案
+# Human Bubble Replies：OpenClaw 日常聊天多气泡回复设计
 
-这是一个面向 OpenClaw 的「日常聊天多气泡回复」开源资料仓。
-
-它不是 OpenClaw 官方 PR，也不是一个能单独安装后就改写发送链路的外部插件。这个仓库发布的是：
-
-- 已验证成功的设计方案
-- 可复制的 core patch 实施流程
-- 给 Agent 使用的英文执行说明
-- 给模型使用的 prompt / skill
-- 验收标准与测试清单
-
-目标是让 OpenClaw 在 Telegram 私聊的日常聊天里，可以像真人一样把短回复自然拆成 2-3 个气泡，而不是把所有长回复都粗暴切块。
-
-## 最终效果
-
-模型输出一条普通 final 文本：
+这个仓库记录一种已经在真实 Telegram DM 中验证成功的 OpenClaw 改造思路：让模型在一条普通回复里写出显式气泡边界，例如：
 
 ```text
 第一条测试消息<bubble:700>第二条测试消息
 ```
 
-OpenClaw core 解析后，Telegram 收到两条独立消息：
+OpenClaw core 负责把它拆成多条正常 reply payload，并按 delay 串行发送。用户不会看到 `<bubble:700>`。
+
+## 这个仓库是什么
+
+这是一个**实现说明仓**，不是 OpenClaw 官方 PR，也不是可直接安装的 Telegram 插件。
+
+它的目标是教会另一个 coding agent：
+
+- 为什么不能只调 `humanDelay` 或降低 chunk 阈值；
+- 为什么不要做 Telegram 侧外部 fan-out 插件；
+- 应该在 OpenClaw 哪些发送链路里找入口；
+- 怎么设计 parser / dedupe / delay / fallback；
+- 真实环境失败时怎么定位；
+- 怎么验收。
+
+也就是“授人以渔”，不是要求 agent 机械套用某个固定 patch。OpenClaw 代码会变，但这套实现原则和排查路径仍然有效。
+
+## 核心概念
+
+### humanDelay 是节奏器，不是分镜器
+
+OpenClaw 原有 `humanDelay` 只会在**已经存在的多条 block replies** 之间加停顿。它不决定一句话应该拆成几条。
+
+Human Bubble Replies 要补的是前一步：让模型明确声明“这里应该成为新气泡”。
+
+```text
+第一条<bubble:800>第二条
+```
+
+### marker 只是模型到 core 的内部协议
+
+最终 marker 固定为：
+
+```text
+<bubble:800>
+```
+
+不要用 `<|bubble:800|>`，因为 OpenClaw 可能会把 `<|...|>` 当作模型特殊 token 清理掉。
+
+`⟦bubble:800⟧` 冲突少，但不常见，模型不一定稳定学会，所以也不作为推荐格式。
+
+### 不能只改一条链路
+
+真实测试证明，OpenClaw 至少有两条需要覆盖的发送路径：
+
+1. **block streaming / block reply path**  
+   长一点或 streaming 中产生的 assistant text 会进入 block reply emission 和 block reply pipeline。
+
+2. **short final / followup delivery path**  
+   很短的 final 回复可能绕过 block parser，直接进入 final delivery / `routeReply`。
+
+如果只改第一条，短回复会漏。真实现象是 Telegram 吃掉 `<` `>`，用户看到：
+
+```text
+第一条bubble:700第二条
+```
+
+所以最终实现必须同时覆盖这两条路径。
+
+## 推荐给 Agent 的英文指令
+
+把下面这段发给 coding agent 即可。等你把仓库发到 GitHub 后，把 `IMPLEMENTATION_GUIDE.md` 换成真实链接：
+
+```text
+Please read IMPLEMENTATION_GUIDE.md in this repository before changing code. Do not blindly apply a fixed patch. Understand the Human Bubble Replies design, locate the equivalent block-reply and final-delivery paths in the current OpenClaw source tree, then implement the feature according to the guide. Preserve the marker format <bubble:800>. Do not implement a Telegram-side fan-out plugin. Run the required parser, pipeline, final-delivery, and live/manual acceptance checks before reporting completion.
+```
+
+如果是远程仓库，可以改成：
+
+```text
+Please read https://github.com/<owner>/<repo>/blob/main/IMPLEMENTATION_GUIDE.md before changing code. Follow the design and verification rules there.
+```
+
+## 仓库结构
+
+```text
+README.md                  # 中文说明，给人看
+IMPLEMENTATION_GUIDE.md    # 英文实现指南，给 coding agent 看
+```
+
+## 最小验收
+
+让模型输出：
+
+```text
+第一条测试消息<bubble:700>第二条测试消息
+```
+
+Telegram DM 应收到两条独立消息：
 
 ```text
 第一条测试消息
@@ -32,151 +106,59 @@ OpenClaw core 解析后，Telegram 收到两条独立消息：
 第二条测试消息
 ```
 
-用户不会看到 `<bubble:700>` marker。
+并且：
 
-## 为什么不是 humanDelay
+- 不显示 `<bubble:700>`；
+- 不显示 `bubble:700`；
+- 不合并成一条空行消息；
+- 不在 final 阶段重复发送合并文本。
 
-OpenClaw 原有 `humanDelay` 是「节奏器」：它只在已经存在的多条 block replies 之间加停顿，不负责决定哪里拆成多条消息。
+## 模型侧 prompt / skill 要点
 
-Human Bubble Replies 是「分镜器」：模型显式声明哪里应该成为新气泡：
-
-```text
-第一条<bubble:800>第二条
-```
-
-core 再把它转成多条正常 delivery payload。
-
-两者不是替代关系：human bubble 负责拆分边界，humanDelay / pipeline delay 负责发送节奏。
-
-## 为什么不是外部 Telegram 插件直接发送
-
-外部插件如果在 `message_sending` hook 里拦截，再自己调用 Telegram Bot API fan-out，会绕过 OpenClaw 的正常 delivery、hooks、reply threading、dedupe、media/TTS 处理和错误恢复。
-
-本方案选择更小但更正确的 core seam：
-
-1. 模型只输出普通回复文本和 `<bubble:delay>` marker。
-2. OpenClaw core 在 block/final reply 层解析 marker。
-3. 拆出来的 payload 仍走 OpenClaw 正常发送链路。
-
-## 仓库结构
+给模型的规则可以很短：
 
 ```text
-.
-├── README.md                         # 中文说明，给人看
-├── agent/PATCH_INSTRUCTIONS.md        # 英文说明，给执行 patch 的 Agent 看
-├── docs/implementation-path.md        # 实现路径与核心文件说明
-├── docs/verification.md               # 测试与验收规范
-├── docs/live-debug-notes.md           # 真实环境踩坑与修复记录
-├── skill/SKILL.md                     # 模型使用的 Human Bubble Replies skill/prompt
-└── patch/human-bubble-replies.patch   # 从验证分支导出的最终状态 patch
+Use <bubble:delayMs> only in Telegram direct casual chat when a short reply naturally fits 2-3 chat bubbles. Write one normal final reply; do not call message(send) multiple times. Do not use bubble markers for technical answers, lists, code, JSON, media, TTS, stickers, safety/medical urgency, or tool-result summaries. If unsure, send one normal reply without markers.
 ```
 
-## 快速使用方式
-
-### 1. 让 Agent 执行 patch
-
-把这段英文给你的 coding agent：
+泛用示例：
 
 ```text
-Please read agent/PATCH_INSTRUCTIONS.md and follow it exactly. Apply the Human Bubble Replies patch to the target OpenClaw source tree, run the required tests, and report the verification output. Do not implement a Telegram-side fan-out plugin. Preserve the marker format <bubble:800>.
+早，醒了吗<bubble:700>外面在下雨，出门记得带伞
 ```
-
-### 2. 安装/启用 skill
-
-把 `skill/SKILL.md` 作为模型技能或 prompt 规则提供给你的 OpenClaw agent。
-
-核心规则是：
-
-- 只在 Telegram 私聊日常短回复中使用。
-- 模型只输出一条 final 文本。
-- 用 `<bubble:delayMs>` 表示气泡边界。
-- 不要多次调用 `message(send)`。
-- 不要直接调用 Telegram API。
-
-### 3. 验收
-
-最小验收：
 
 ```text
-模型输出：第一条<bubble:700>第二条
-Telegram 实际收到：两条独立消息
-marker 不可见
-两条之间有约 700ms 延迟
+可以，先这样定<bubble:500>后面如果要改，我再帮你收一下边界
 ```
-
-完整验收见：[`docs/verification.md`](docs/verification.md)
-
-## 已验证的真实问题
-
-真实 Telegram 测试中踩过两个坑：
-
-1. **coalescer 合并问题**  
-   marker 被正确解析，但两条短 payload 被 block reply coalescer 合并成一条带空行的消息。
-
-2. **short final 旁路问题**  
-   极短 final 回复可能不走 block streaming parser，而是直接进入 final followup delivery。Telegram 会吃掉 `<` `>`，用户只看到 `bubble:700`。
-
-因此最终方案必须同时覆盖：
-
-- block streaming reply 路径
-- followup final delivery 路径
-
-详细记录见：[`docs/live-debug-notes.md`](docs/live-debug-notes.md)
-
-## Marker 格式
-
-最终格式固定为：
 
 ```text
-<bubble:800>
+别急，先喝口水<bubble:600>这事我们一点点拆，不用现在就全想明白
 ```
 
-不要改成：
+## 真实调试中踩过的坑
 
-```text
-<|bubble:800|>
-```
+### 1. marker 被解析了，但消息被合并
 
-原因：OpenClaw 的 model special-token sanitizer 会清理 `<|...|>`。
+现象：Telegram 收到一条消息，中间是空行。
 
-也不推荐：
+原因：split 后的短 payload 又被 block reply coalescer 合并。
 
-```text
-⟦bubble:800⟧
-```
+修复原则：带 `bubbleDelayMs` 的 payload 必须绕过 coalescer，必要时先 flush 已有 buffer。
 
-原因：冲突低，但不常见，模型不一定容易稳定学会。
+### 2. 用户看到 `bubble:700`
 
-## 适用范围
+现象：`<` 和 `>` 不见了，只剩 `bubble:700`。
 
-适合：
+原因：短 final 没经过 block parser，直接走 final delivery / Telegram rendering。
 
-- Telegram 私聊
-- 日常聊天
-- 短回复
-- 情绪/节奏自然拆分
+修复原则：在 final/followup delivery 层也做 bubble fan-out，位置要在 `routeReply` 或最终 dispatcher 前。
 
-不适合：
+### 3. 成功拆了，但 final 又重复发一遍
 
-- 代码、调试、技术方案
-- 长文、列表、表格、JSON
-- 媒体/TTS/sticker/tool flow
-- 医疗、安全、紧急提醒
-- 群聊默认场景
+原因：final dedupe 没把 marker 清理后再比较。
 
-## 当前验证状态
-
-在验证分支中，以下 targeted tests 已通过：
-
-```text
-human-bubble-markers.test.ts                         10 passed
-block-reply-pipeline.test.ts                         18 passed
-followup-runner.test.ts                              31 passed
-pi-embedded-subscribe.human-bubble-block-reply.test   2 passed
-```
-
-真实 Telegram DM 测试也已成功：`<bubble:700>` 被拆成两条独立消息，marker 不可见。
+修复原则：dedupe key 和 final coverage 判断都要用 marker-stripped text。
 
 ## 许可证
 
-按你发布时选择的许可证处理。建议开源前补一个 `LICENSE` 文件。
+发布前请补一个 `LICENSE`。
