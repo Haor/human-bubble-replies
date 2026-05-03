@@ -12,9 +12,9 @@ Plan source: `docs/superpowers/plans/2026-05-03-human-bubble-replies-implementat
 
 - [ ] Task 0: Prepare implementation workspace
   - [x] Write project TODO
-  - [ ] Locate or clone editable OpenClaw source repository
-  - [ ] Create isolated branch/worktree for implementation
-  - [ ] Verify clean baseline or record blocker
+  - [x] Locate or clone editable OpenClaw source repository
+  - [x] Create isolated branch/worktree for implementation
+  - [x] Verify clean baseline or record blocker
 - [ ] Task 1: Add pure bubble marker parser tests
 - [ ] Task 2: Implement parser, stripping, and dedupe normalization
 - [ ] Task 3: Add block-reply emission integration tests
@@ -27,4 +27,4 @@ Plan source: `docs/superpowers/plans/2026-05-03-human-bubble-replies-implementat
 
 ## Current note
 
-The installed OpenClaw package under `/usr/lib/node_modules/openclaw` is not a git checkout and appears to contain compiled `dist/` files but no editable `src/` tree. Implementation should target an editable source checkout before touching runtime files.
+Editable source checkout: `/root/.openclaw/repos/openclaw`; implementation worktree: `/root/.openclaw/repos/openclaw/.worktrees/human-bubble-replies` on branch `feature/human-bubble-replies`. Baseline targeted test passed: `corepack pnpm test -- src/auto-reply/reply/block-reply-pipeline.test.ts` (14 tests).
