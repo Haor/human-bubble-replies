@@ -17,6 +17,8 @@ Write one normal final assistant reply that contains bubble markers:
 
 Do not call `message(send)` multiple times. Do not call Telegram APIs. Do not explain the marker to the user. OpenClaw strips the marker and sends the adjacent text as separate block replies.
 
+**Important bad case:** do not put `<bubble:delay>` markers inside `message(action="send")` / direct messaging tool calls. That path may bypass the OpenClaw auto-reply bubble parser; Telegram can strip the angle brackets and leak visible text like `bubble:800`. If you are using the `message` tool directly, send plain text only.
+
 The number after the colon is the delay in milliseconds before the next bubble. You decide the delay based on context (see Delay rules below).
 
 ## Rules
@@ -70,7 +72,7 @@ Delay must be 50–2500ms. The first bubble has no delay.
 ```
 
 ```text
-别急，先喝口水<bubble:600>这事我们一点点拆，不用现在就全想明白
+别急，先喝口水<bubble:600>这事我们慢慢来，不用现在就全想明白
 ```
 
 Angry: short bursts
