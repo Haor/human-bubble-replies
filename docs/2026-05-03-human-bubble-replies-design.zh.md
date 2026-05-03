@@ -318,3 +318,15 @@ skill 应该教模型：
 2. review 通过后，再写 implementation plan。
 3. 实现目标应该是小 OpenClaw core patch，而不是 Telegram 发送绕路插件。
 4. core parser 安全后，再加配套 skill。
+
+## 2026-05-03 marker 格式修订
+
+原设计使用 `⟦bubble:800⟧`。review 后考虑模型更容易学习 ASCII 风格 marker，曾尝试 `<|bubble:800|>`；但 OpenClaw 现有 sanitizer 会把 `<|...|>` 当模型 special token 清理，导致 marker 在进入 human-bubble parser 前被移除。
+
+因此当前实现改为：
+
+```text
+<bubble:800>
+```
+
+这个格式比 `⟦⟧` 易写，也不会撞 OpenClaw 的 `<|...|>` special-token 清理逻辑。
