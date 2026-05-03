@@ -129,4 +129,4 @@ IMPLEMENTATION_GUIDE.md
 
 ## License
 
-请在发布前根据需要添加许可证文件。
+MIT. See [LICENSE](LICENSE).
