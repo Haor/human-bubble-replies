@@ -20,7 +20,7 @@ Plan source: `docs/superpowers/plans/2026-05-03-human-bubble-replies-implementat
 - [x] Task 3: Add block-reply emission integration tests
 - [x] Task 4: Integrate parser into block-reply emission boundary
 - [x] Task 5: Apply per-bubble delay in block reply pipeline
-- [ ] Task 6: Prevent final duplicate sends with marker-normalized comparison
+- [x] Task 6: Prevent final duplicate sends with marker-normalized comparison
 - [ ] Task 7: Add skill guidance after core safety is proven
 - [ ] Task 8: Manual Telegram validation
 - [ ] Task 9: Documentation and release guardrails
