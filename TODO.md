@@ -17,7 +17,7 @@ Plan source: `docs/superpowers/plans/2026-05-03-human-bubble-replies-implementat
   - [x] Verify clean baseline or record blocker
 - [x] Task 1: Add pure bubble marker parser tests
 - [x] Task 2: Implement parser, stripping, and dedupe normalization
-- [ ] Task 3: Add block-reply emission integration tests
+- [x] Task 3: Add block-reply emission integration tests
 - [ ] Task 4: Integrate parser into block-reply emission boundary
 - [ ] Task 5: Apply per-bubble delay in block reply pipeline
 - [ ] Task 6: Prevent final duplicate sends with marker-normalized comparison
