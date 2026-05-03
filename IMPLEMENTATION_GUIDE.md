@@ -201,7 +201,19 @@ bubbleDelayMs?: number
 
 Do not expose this as a user-facing API unless the project intentionally wants to.
 
-## 12. Tests to write
+
+## 12. Model skill installation
+
+After core support is implemented, install the bundled skill so the model knows when to emit bubble markers. For example:
+
+```bash
+mkdir -p ~/.openclaw/workspace/skills/human-bubble-replies
+cp skill/SKILL.md ~/.openclaw/workspace/skills/human-bubble-replies/SKILL.md
+```
+
+The skill is not a delivery implementation. It only teaches model behavior. The runtime must still implement parser, fan-out, delay, and dedupe support.
+
+## 13. Tests to write
 
 At minimum, write tests for these behaviors.
 
@@ -231,7 +243,7 @@ At minimum, write tests for these behaviors.
 - second payload is delayed;
 - marker is not passed to the final route/send call.
 
-## 13. Manual acceptance test
+## 14. Manual acceptance test
 
 In Telegram DM, force or prompt the model to output:
 
@@ -247,7 +259,7 @@ Expected:
 - second message delayed;
 - no duplicate merged final message.
 
-## 14. Debugging guide
+## 15. Debugging guide
 
 ### Symptom: one message with a blank line
 
@@ -273,7 +285,7 @@ Likely cause: no parser was reached, or parser scope rejected without stripping.
 
 Fix: every unsupported path should strip markers before delivery.
 
-## 15. Completion criteria
+## 16. Completion criteria
 
 The implementation is complete only when:
 

@@ -57,25 +57,30 @@ Telegram 收到：
 - 医疗、安全或紧急提醒
 - 默认群聊场景
 
-## 给 Coding Agent 的指令
+## 给 OpenClaw / Claw 的指令
 
-将下面这段指令交给 coding agent。发布到 GitHub 后，可以把文件路径替换成真实链接。
-
-```text
-Please read IMPLEMENTATION_GUIDE.md in this repository before changing code. Do not blindly apply a fixed patch. Understand the Human Bubble Replies design, locate the equivalent block-reply and final-delivery paths in the current OpenClaw source tree, then implement the feature according to the guide. Preserve the marker format <bubble:800>. Do not implement a Telegram-side fan-out plugin. Run the required parser, pipeline, final-delivery, and live/manual acceptance checks before reporting completion.
-```
-
-GitHub 链接版本示例：
+将下面这段发给你的 OpenClaw / Claw，让它先阅读实现指南：
 
 ```text
-Please read https://github.com/<owner>/<repo>/blob/main/IMPLEMENTATION_GUIDE.md before changing code. Follow the design and verification rules there.
+请阅读本仓库的 IMPLEMENTATION_GUIDE.md，并按文档完成 Human Bubble Replies 支持。
 ```
 
-## 模型 Prompt 摘要
+发布到 GitHub 后，可以改成真实链接：
 
 ```text
-Use <bubble:delayMs> only in Telegram direct casual chat when a short reply naturally fits 2-3 chat bubbles. Write one normal final reply; do not call message(send) multiple times. Do not use bubble markers for technical answers, lists, code, JSON, media, TTS, stickers, safety/medical urgency, or tool-result summaries. If unsure, send one normal reply without markers.
+请阅读 https://github.com/<owner>/<repo>/blob/main/IMPLEMENTATION_GUIDE.md，并按文档完成 Human Bubble Replies 支持。
 ```
+
+## 安装 Skill
+
+完成 core 支持后，将 `skill/SKILL.md` 安装到 OpenClaw 的 skills 目录，例如：
+
+```bash
+mkdir -p ~/.openclaw/workspace/skills/human-bubble-replies
+cp skill/SKILL.md ~/.openclaw/workspace/skills/human-bubble-replies/SKILL.md
+```
+
+Skill 负责教模型何时输出 `<bubble:delayMs>` marker；core patch 负责解析、拆分和发送。
 
 ## Marker 格式
 
