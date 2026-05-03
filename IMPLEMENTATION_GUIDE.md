@@ -206,6 +206,12 @@ Do not expose this as a user-facing API unless the project intentionally wants t
 
 After core support is implemented, install the bundled skill so the model knows when to emit bubble markers. For example:
 
+Skill source:
+
+```text
+https://raw.githubusercontent.com/Haor/human-bubble-replies/refs/heads/main/skill/SKILL.md
+```
+
 ```bash
 mkdir -p ~/.openclaw/workspace/skills/human-bubble-replies
 cp skill/SKILL.md ~/.openclaw/workspace/skills/human-bubble-replies/SKILL.md

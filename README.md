@@ -59,16 +59,10 @@ Telegram 收到：
 
 ## 给 OpenClaw / Claw 的指令
 
-将下面这段发给你的 OpenClaw / Claw，让它先阅读实现指南：
+Send this instruction to OpenClaw / Claw:
 
 ```text
-请阅读本仓库的 IMPLEMENTATION_GUIDE.md，并按文档完成 Human Bubble Replies 支持。
-```
-
-发布到 GitHub 后，可以改成真实链接：
-
-```text
-请阅读 https://github.com/<owner>/<repo>/blob/main/IMPLEMENTATION_GUIDE.md，并按文档完成 Human Bubble Replies 支持。
+Read https://raw.githubusercontent.com/Haor/human-bubble-replies/refs/heads/main/IMPLEMENTATION_GUIDE.md and implement Human Bubble Replies support according to the guide.
 ```
 
 ## 安装 Skill
