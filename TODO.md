@@ -16,7 +16,7 @@ Plan source: `docs/superpowers/plans/2026-05-03-human-bubble-replies-implementat
   - [x] Create isolated branch/worktree for implementation
   - [x] Verify clean baseline or record blocker
 - [x] Task 1: Add pure bubble marker parser tests
-- [ ] Task 2: Implement parser, stripping, and dedupe normalization
+- [x] Task 2: Implement parser, stripping, and dedupe normalization
 - [ ] Task 3: Add block-reply emission integration tests
 - [ ] Task 4: Integrate parser into block-reply emission boundary
 - [ ] Task 5: Apply per-bubble delay in block reply pipeline
