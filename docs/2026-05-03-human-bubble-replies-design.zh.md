@@ -330,3 +330,9 @@ skill 应该教模型：
 ```
 
 这个格式比 `⟦⟧` 易写，也不会撞 OpenClaw 的 `<|...|>` special-token 清理逻辑。
+
+## 2026-05-03 skill 打包修订
+
+Skill 文案已改为泛用例子，不再使用私人对话中的句子。操作要求明确为：模型只输出一条带 `<bubble:delay>` marker 的普通最终回复，不调用 `message(send)` 多次，也不直接调用 Telegram API；OpenClaw core 负责把 marker 转成 block replies。
+
+同时新增 `extensions/human-bubble-replies/`，作为插件形式携带该 skill。插件本身不劫持发送链路，只通过 `openclaw.plugin.json` 的 `skills` 字段发布 skill；实际解析和发送仍由 core block-reply 代码完成。
